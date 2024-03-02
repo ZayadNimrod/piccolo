@@ -91,47 +91,50 @@ impl<'gc> Callback<'gc> {
         Self(unsafe { Gc::cast::<CallbackInner>(hc) })
     }
 
-    pub fn from_fn<F>(mc: &Mutation<'gc>, call: F) -> Callback<'gc>
+    pub fn from_fn<'f, F>(mc: &Mutation<'gc>, call: F) -> Callback<'gc>
     where
-        F: 'static
+        F: 'f
             + Fn(
                 Context<'gc>,
                 Execution<'gc, '_>,
                 Stack<'gc, '_>,
             ) -> Result<CallbackReturn<'gc>, Error<'gc>>,
+        'f: 'gc,
     {
         Self::from_fn_with(mc, (), move |_, ctx, exec, stack| call(ctx, exec, stack))
     }
 
-    pub fn from_fn_with<R, F>(mc: &Mutation<'gc>, root: R, call: F) -> Callback<'gc>
+    pub fn from_fn_with<'f, R, F>(mc: &Mutation<'gc>, root: R, call: F) -> Callback<'gc>
     where
         R: 'gc + Collect,
-        F: 'static
+        F: 'f
             + Fn(
                 &R,
                 Context<'gc>,
                 Execution<'gc, '_>,
                 Stack<'gc, '_>,
             ) -> Result<CallbackReturn<'gc>, Error<'gc>>,
+        'f: 'gc,
     {
         #[derive(Collect)]
         #[collect(no_drop)]
         struct RootCallback<R, F> {
             root: R,
-            #[collect(require_static)]
+            //#[collect(require_static)]
             call: F,
         }
 
-        impl<'gc, R, F> CallbackFn<'gc> for RootCallback<R, F>
+        impl<'gc, 'f, R, F> CallbackFn<'gc> for RootCallback<R, F>
         where
             R: 'gc + Collect,
-            F: 'static
+            F: 'f
                 + Fn(
                     &R,
                     Context<'gc>,
                     Execution<'gc, '_>,
                     Stack<'gc, '_>,
                 ) -> Result<CallbackReturn<'gc>, Error<'gc>>,
+            'f: 'gc,
         {
             fn call(
                 &self,
