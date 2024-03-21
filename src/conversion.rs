@@ -153,6 +153,15 @@ where
     }
 }
 
+impl<'gc, T> IntoValue<'gc> for std::num::Wrapping<T>
+where
+    T: IntoValue<'gc>,
+{
+    fn into_value(self, ctx: Context<'gc>) -> Value<'gc> {
+        self.0.into_value(ctx)
+    }
+}
+
 pub trait FromValue<'gc>: Sized {
     fn from_value(ctx: Context<'gc>, value: Value<'gc>) -> Result<Self, TypeError>;
 }
@@ -206,6 +215,15 @@ impl<'gc, T: FromValue<'gc>, const N: usize> FromValue<'gc> for [T; N] {
                 found: value.type_name(),
             })
         }
+    }
+}
+
+impl<'gc, T> FromValue<'gc> for std::num::Wrapping<T>
+where
+    T: FromValue<'gc>,
+{
+    fn from_value(ctx: Context<'gc>, value: Value<'gc>) -> Result<Self, TypeError> {
+        T::from_value(ctx, value).map(std::num::Wrapping)
     }
 }
 
